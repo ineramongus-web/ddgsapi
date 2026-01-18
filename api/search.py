@@ -42,7 +42,7 @@ class Handler(BaseHTTPRequestHandler):
                 query,
                 region="wt-wt",
                 safesearch="off",
-                max_results=20
+                max_results=50
             ):
                 href = r.get("href", "")
                 if not allowed(href):
@@ -55,7 +55,7 @@ class Handler(BaseHTTPRequestHandler):
                     "source": "duckduckgo-ddgs"
                 })
 
-                if len(results) >= 5:
+                if len(results) >= 10:
                     break
 
         self.send_response(200)
