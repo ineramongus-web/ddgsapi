@@ -1,5 +1,6 @@
 from ddgs import DDGS
 from urllib.parse import parse_qs, urlparse
+import json
 
 ALLOWED_DOMAINS = (
     "devforum.roblox.com",
@@ -17,12 +18,14 @@ def allowed(url: str) -> bool:
 
 
 def handler(request):
-    query = parse_qs(request.query_string.decode()).get("q", [""])[0]
+    # Leer query ?q=
+    qs = parse_qs(request.query_string.decode())
+    query = qs.get("q", [""])[0]
 
     if len(query) < 3:
         return {
             "statusCode": 400,
-            "body": "Missing or invalid query"
+            "body": "Invalid query"
         }
 
     results = []
@@ -50,24 +53,14 @@ def handler(request):
 
     return {
         "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
-        "body": __import__("json").dumps({
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "body": json.dumps({
             "query": query,
             "count": len(results),
+            "domains": ALLOWED_DOMAINS,
             "results": results
         })
-    }            results.append({
-                "title": r.get("title"),
-                "body": r.get("body"),
-                "href": href,
-                "source": "duckduckgo-ddgs"
-            })
-
-            if len(results) >= 5:
-                break
-
-    return {
-        "query": q,
-        "count": len(results),
-        "results": results
     }
