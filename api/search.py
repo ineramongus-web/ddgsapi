@@ -17,15 +17,21 @@ def allowed(url: str) -> bool:
         return False
 
 
-def handler(request):
-    # Leer query ?q=
-    qs = parse_qs(request.query_string.decode())
-    query = qs.get("q", [""])[0]
+def handler(event, context):
+    # event["queryStringParameters"] es el formato correcto
+    params = event.get("queryStringParameters") or {}
+    query = params.get("q", "")
 
-    if len(query) < 3:
+    if not query or len(query) < 3:
         return {
             "statusCode": 400,
-            "body": "Invalid query"
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps({
+                "error": "Invalid or missing query"
+            })
         }
 
     results = []
