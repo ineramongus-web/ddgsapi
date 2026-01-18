@@ -1,5 +1,6 @@
+from http.server import BaseHTTPRequestHandler
 from ddgs import DDGS
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse, parse_qs
 import json
 
 ALLOWED_DOMAINS = (
@@ -17,56 +18,53 @@ def allowed(url: str) -> bool:
         return False
 
 
-def handler(event, context):
-    # event["queryStringParameters"] es el formato correcto
-    params = event.get("queryStringParameters") or {}
-    query = params.get("q", "")
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
 
-    if not query or len(query) < 3:
-        return {
-            "statusCode": 400,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            "body": json.dumps({
+        query = params.get("q", [""])[0]
+
+        if not query or len(query) < 3:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps({
                 "error": "Invalid or missing query"
-            })
-        }
+            }).encode())
+            return
 
-    results = []
+        results = []
 
-    with DDGS() as ddg:
-        for r in ddg.text(
-            query,
-            region="wt-wt",
-            safesearch="off",
-            max_results=20
-        ):
-            href = r.get("href", "")
-            if not allowed(href):
-                continue
+        with DDGS() as ddg:
+            for r in ddg.text(
+                query,
+                region="wt-wt",
+                safesearch="off",
+                max_results=20
+            ):
+                href = r.get("href", "")
+                if not allowed(href):
+                    continue
 
-            results.append({
-                "title": r.get("title"),
-                "body": r.get("body"),
-                "href": href,
-                "source": "duckduckgo-ddgs"
-            })
+                results.append({
+                    "title": r.get("title"),
+                    "body": r.get("body"),
+                    "href": href,
+                    "source": "duckduckgo-ddgs"
+                })
 
-            if len(results) >= 5:
-                break
+                if len(results) >= 5:
+                    break
 
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-        },
-        "body": json.dumps({
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(json.dumps({
             "query": query,
             "count": len(results),
             "domains": ALLOWED_DOMAINS,
             "results": results
-        })
-    }
+        }).encode())
