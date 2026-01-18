@@ -6,6 +6,11 @@ import json
 ALLOWED_DOMAINS = (
     "devforum.roblox.com",
     "github.com",
+    "pastebin.com",
+    "wearedevs.net",
+    "reddit.com",
+    "rscripts.net",
+    "scriptblox.com",
     "create.roblox.com",
     "roblox.com"
 )
