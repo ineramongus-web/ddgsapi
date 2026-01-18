@@ -1,9 +1,5 @@
-from fastapi import FastAPI, Query
 from ddgs import DDGS
-from urllib.parse import urlparse
-from mangum import Mangum
-
-app = FastAPI()
+from urllib.parse import parse_qs, urlparse
 
 ALLOWED_DOMAINS = (
     "devforum.roblox.com",
@@ -19,13 +15,21 @@ def allowed(url: str) -> bool:
     except Exception:
         return False
 
-@app.get("/q")
-def search(q: str = Query(..., min_length=3)):
+
+def handler(request):
+    query = parse_qs(request.query_string.decode()).get("q", [""])[0]
+
+    if len(query) < 3:
+        return {
+            "statusCode": 400,
+            "body": "Missing or invalid query"
+        }
+
     results = []
 
     with DDGS() as ddg:
         for r in ddg.text(
-            q,
+            query,
             region="wt-wt",
             safesearch="off",
             max_results=20
@@ -45,9 +49,25 @@ def search(q: str = Query(..., min_length=3)):
                 break
 
     return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": __import__("json").dumps({
+            "query": query,
+            "count": len(results),
+            "results": results
+        })
+    }            results.append({
+                "title": r.get("title"),
+                "body": r.get("body"),
+                "href": href,
+                "source": "duckduckgo-ddgs"
+            })
+
+            if len(results) >= 5:
+                break
+
+    return {
         "query": q,
         "count": len(results),
         "results": results
     }
-
-handler = Mangum(app)
