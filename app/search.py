@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Query
 from ddgs import DDGS
 from urllib.parse import urlparse
+from mangum import Mangum
 
 app = FastAPI()
 
@@ -46,6 +47,7 @@ def search(q: str = Query(..., min_length=3)):
     return {
         "query": q,
         "count": len(results),
-        "domains": ALLOWED_DOMAINS,
         "results": results
     }
+
+handler = Mangum(app)
